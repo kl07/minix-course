@@ -180,6 +180,8 @@
 							 * a segment of memory
 							 */
 
+#define BUSC_I2C_RESERVE	(BUSC_RQ_BASE + 64)	/* reserve i2c device */
+#define BUSC_I2C_EXEC		(BUSC_RQ_BASE + 65)	/* perform i2c action */
 
 /*===========================================================================*
  *                Messages for CHARACTER device drivers			     *
@@ -1296,6 +1298,7 @@
 /* Bits in 'BDEV_FLAGS' field of block device transfer requests. */
 #  define BDEV_NOFLAGS		0x00	/* no flags are set */
 #  define BDEV_FORCEWRITE	0x01	/* force write to disk immediately */
+#  define BDEV_NOPAGE		0x02	/* eeprom: don't send page address */
 
 /* Field names for GETRUSAGE related calls */
 #define RU_ENDPT	m1_i1	/* indicates a process for sys_getrusage */
