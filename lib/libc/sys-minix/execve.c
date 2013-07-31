@@ -10,7 +10,7 @@
 #include <string.h>
 #include <stddef.h>
 #include <sys/exec_elf.h>
-
+#include <stdio.h>
 #ifdef __weak_alias
 __weak_alias(execve, _execve)
 #endif
@@ -114,6 +114,7 @@ int execve(const char *path, char * const *argv, char * const *envp)
 	/* We can finally make the system call. */
 	m.m1_i1 = strlen(path) + 1;
 	m.m1_i2 = frame_size;
+	fprintf(stderr , " execve %s\n" , path);
 	m.m1_p1 = (char *) __UNCONST(path);
 	m.m1_p2 = frame;
 
