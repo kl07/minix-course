@@ -827,7 +827,6 @@ struct
 	{ "STIME",		SYS_STIME },
 	{ "VMCTL",		SYS_VMCTL },
 	{ "MEMSET",		SYS_MEMSET },
-	{ "PRINTMYMESSG",	SYS_PRINTMYMESSG },
 	{ NULL,		0 }
 };
 
