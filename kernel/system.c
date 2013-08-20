@@ -200,6 +200,7 @@ void system_init(void)
   map(SYS_UPDATE, do_update);		/* update a process into another */
   map(SYS_STATECTL, do_statectl);	/* let a process control its state */
 
+  map(SYS_PRINTMYMESSG, printmymessg)
   /* Signal handling. */
   map(SYS_KILL, do_kill); 		/* cause a process to be signaled */
   map(SYS_GETKSIG, do_getksig);		/* signal manager checks for signals */
