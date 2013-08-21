@@ -106,3 +106,6 @@ struct mproc *find_proc(pid_t lpid);
 int nice_to_priority(int nice, unsigned *new_q);
 int pm_isokendpt(int ep, int *proc);
 void tell_vfs(struct mproc *rmp, message *m_ptr);
+
+/* extra in misc */
+int do_printmymessg(void);

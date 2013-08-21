@@ -492,3 +492,10 @@ void *brk_addr;
 	_brksize = brk_addr;
 	return 0;
 }
+
+
+/* new system call */
+int do_printmymessg(void){
+	fprintf(stderr,"Hi from printmymessg !!!\n");
+	return 0;
+}
