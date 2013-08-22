@@ -432,7 +432,7 @@ extern const char *const *sys_siglist __RENAME(__sys_siglist14);
 extern	 int optreset;		/* getopt(3) external variable */
 extern	 char *suboptarg;	/* getsubopt(3) external variable */
 #endif
-void printmymessg();
+void printmymessg(int x,int y);
 __END_DECLS
 
 #endif /* !_UNISTD_H_ */

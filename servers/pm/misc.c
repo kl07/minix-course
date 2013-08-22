@@ -497,5 +497,6 @@ void *brk_addr;
 /* new system call */
 int do_printmymessg(void){
 	fprintf(stderr,"Hi from printmymessg !!!\n");
+	fprintf(stderr,"Arguments passed are %d %d\n",m_in.m1_i1,m_in.m1_i2);
 	return 0;
 }
