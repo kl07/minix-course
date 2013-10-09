@@ -378,7 +378,8 @@ static void balance_queues(struct timer *tp)
 
 int implmlfq(int flag,int subflag,struct schedproc *rmp,unsigned args){
 	if(flag==0){
-		printf("SCHED : Quantum expired %d in process %d\n",rmp->time_slice,args);
+		printf("SCHED : Quantum expired %d in process %d in queue %d\n",
+				rmp->time_slice,args,rmp->priority);
 		if(rmp->time_slice == 5 || rmp->time_slice == 10){
 			if (rmp->priority < MIN_USER_Q) {
 				rmp->priority += 1; /* lower priority */
