@@ -21,7 +21,7 @@ static unsigned balance_timeout;
 
 static int schedule_process(struct schedproc * rmp, unsigned flags);
 static void balance_queues(struct timer *tp);
-
+int (*osscheduler)(int flag,int subflag,struct schedproc * rmp,unsigned args);
 #define SCHEDULE_CHANGE_PRIO	0x1
 #define SCHEDULE_CHANGE_QUANTUM	0x2
 #define SCHEDULE_CHANGE_CPU	0x4
@@ -99,7 +99,10 @@ int do_noquantum(message *m_ptr)
 	}
 
 	rmp = &schedproc[proc_nr_n];
-	if (rmp->priority < MIN_USER_Q) {
+	if(MAX_USER_Q  <= rmp->priority <= MIN_USER_Q){
+		(*osscheduler)(0,0,rmp);
+	}
+	else if (rmp->priority < MIN_USER_Q) {
 		rmp->priority += 1; /* lower priority */
 	}
 
@@ -132,6 +135,7 @@ int do_stop_scheduling(message *m_ptr)
 	cpu_proc[rmp->cpu]--;
 #endif
 	rmp->flags = 0; /*&= ~IN_USE;*/
+	return (*osscheduler(1,0,rmp,0));
 
 	return OK;
 }
@@ -173,9 +177,9 @@ int do_start_scheduling(message *m_ptr)
 	if (rmp->endpoint == rmp->parent) {
 		/* We have a special case here for init, which is the first
 		   process scheduled, and the parent of itself. */
-		rmp->priority   = USER_Q;
-		rmp->time_slice = DEFAULT_USER_TIME_SLICE;
-
+		//rmp->priority   = USER_Q;
+		//rmp->time_slice = DEFAULT_USER_TIME_SLICE;
+		*osscheduler(2,0,rmp,0);
 		/*
 		 * Since kernel never changes the cpu of a process, all are
 		 * started on the BSP and the userspace scheduling hasn't
@@ -194,8 +198,9 @@ int do_start_scheduling(message *m_ptr)
 		/* We have a special case here for system processes, for which
 		 * quanum and priority are set explicitly rather than inherited 
 		 * from the parent */
-		rmp->priority   = rmp->max_priority;
+		//rmp->priority   = rmp->max_priority;
 		rmp->time_slice = (unsigned) m_ptr->SCHEDULING_QUANTUM;
+		*osscheduler(2,1,rmp,0);
 		break;
 		
 	case SCHEDULING_INHERIT:
@@ -258,7 +263,7 @@ int do_nice(message *m_ptr)
 	struct schedproc *rmp;
 	int rv;
 	int proc_nr_n;
-	unsigned new_q, old_q, old_max_q;
+	unsigned new_q, old_q, old_max_q , old_num_tickets;
 
 	/* check who can send you requests */
 	if (!accept_message(m_ptr))
@@ -271,7 +276,8 @@ int do_nice(message *m_ptr)
 	}
 
 	rmp = &schedproc[proc_nr_n];
-	new_q = (unsigned) m_ptr->SCHEDULING_MAXPRIO;
+	//new_q = (unsigned) m_ptr->SCHEDULING_MAXPRIO;
+	new_q = *osscheduler(3,0,NULL,m_ptr->SCHEDULING_MAXPRIO);
 	if (new_q >= NR_SCHED_QUEUES) {
 		return EINVAL;
 	}
@@ -279,7 +285,7 @@ int do_nice(message *m_ptr)
 	/* Store old values, in case we need to roll back the changes */
 	old_q     = rmp->priority;
 	old_max_q = rmp->max_priority;
-
+	old_num_tickets = *osscheduler(3,1,rmp,0);
 	/* Update the proc entry and reschedule the process */
 	rmp->max_priority = rmp->priority = new_q;
 
@@ -288,8 +294,9 @@ int do_nice(message *m_ptr)
 		 * back the changes to proc struct */
 		rmp->priority     = old_q;
 		rmp->max_priority = old_max_q;
+		*osscheduler(3,2,rmp,old_num_tickets);
 	}
-
+	*osscheduler(3,3,rmp,0);
 	return rv;
 }
 
@@ -337,6 +344,7 @@ void init_scheduling(void)
 	balance_timeout = BALANCE_TIMEOUT * sys_hz();
 	init_timer(&sched_timer);
 	set_timer(&sched_timer, balance_timeout, balance_queues, 0);
+	osscheduler = implmlfq;
 }
 
 /*===========================================================================*
@@ -355,12 +363,54 @@ static void balance_queues(struct timer *tp)
 
 	for (proc_nr=0, rmp=schedproc; proc_nr < NR_PROCS; proc_nr++, rmp++) {
 		if (rmp->flags & IN_USE) {
-			if (rmp->priority > rmp->max_priority) {
-				rmp->priority -= 1; /* increase priority */
+			/*if (rmp->priority > rmp->max_priority) {
+				rmp->priority -= 1;  increase priority 
 				schedule_process_local(rmp);
-			}
+			}*/
+			*osscheduler(6,0,rmp,0);
 		}
 	}
 
 	set_timer(&sched_timer, balance_timeout, balance_queues, 0);
 }
+
+int implmlfq(int flag,int subflag,struct shcedproc *rmp,unsigned args){
+	if(flag==0){
+		if(rmp->time_slice == 5 || rmp->time_slice == 10){
+			if (rmp->priority < MIN_USER_Q) {
+				rmp->priority += 1; /* lower priority */
+			}
+			
+			rmp->time_slice *= 2;				
+		}else if(rmp->time_slice == 20){
+			rmp->priority = rmp->max_priority; /* increase priority */
+			rmp->time_slice = 5;
+		}
+	}else if(flag==2){
+		if(subflag==0){
+			rmp->priority = 7;
+			rmp->time_slice = DEFAULT_USER_TIME_SLICE;
+		}else if(subflag==1){
+			rmp->prioirty = 7;
+		}
+	}else if(flag==3){
+		if(subflag==0){
+			return args;
+		}
+	}else if(flag==6){
+		if(rmp->priority > rmp_max_priority){
+			if(rmp->max_priority == MAX_USER_Q){
+				if (rmp->priority > rmp->max_priority) {
+					rmp->priority = rmp->max_priority; /* increase priority */
+				}
+			}else
+				rmp->priority -=1;
+			schedule_process_local(rmp);
+		}
+	}
+	
+	return 0;
+}
+			
+
+		
