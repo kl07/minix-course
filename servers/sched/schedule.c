@@ -22,6 +22,7 @@ static unsigned balance_timeout;
 static int schedule_process(struct schedproc * rmp, unsigned flags);
 static void balance_queues(struct timer *tp);
 int (*osscheduler)(int flag,int subflag,struct schedproc * rmp,unsigned args);
+int implmlfq(int flag,int subflag,struct schedproc *rmp,unsigned args);
 #define SCHEDULE_CHANGE_PRIO	0x1
 #define SCHEDULE_CHANGE_QUANTUM	0x2
 #define SCHEDULE_CHANGE_CPU	0x4
@@ -135,7 +136,7 @@ int do_stop_scheduling(message *m_ptr)
 	cpu_proc[rmp->cpu]--;
 #endif
 	rmp->flags = 0; /*&= ~IN_USE;*/
-	return (*osscheduler(1,0,rmp,0));
+	return (*osscheduler)(1,0,rmp,0);
 
 	return OK;
 }
@@ -398,7 +399,7 @@ int implmlfq(int flag,int subflag,struct schedproc *rmp,unsigned args){
 			return args;
 		}
 	}else if(flag==6){
-		if(rmp->priority > rmp_max_priority){
+		if(rmp->priority > rmp->max_priority){
 			if(rmp->max_priority == MAX_USER_Q){
 				if (rmp->priority > rmp->max_priority) {
 					rmp->priority = rmp->max_priority; /* increase priority */
