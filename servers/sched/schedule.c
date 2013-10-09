@@ -212,8 +212,9 @@ int do_start_scheduling(message *m_ptr)
 				&parent_nr_n)) != OK)
 			return rv;
 
-		rmp->priority = schedproc[parent_nr_n].priority;
-		rmp->time_slice = schedproc[parent_nr_n].time_slice;
+		//rmp->priority = schedproc[parent_nr_n].priority;
+		//rmp->time_slice = schedproc[parent_nr_n].time_slice;
+		(*osscheduler)(2,2,rmp,0);
 		break;
 		
 	default: 
@@ -377,6 +378,7 @@ static void balance_queues(struct timer *tp)
 
 int implmlfq(int flag,int subflag,struct schedproc *rmp,unsigned args){
 	if(flag==0){
+		printf("SCHED : Quantum expired %d in process %d\n",rmp->time_slice,args);
 		if(rmp->time_slice == 5 || rmp->time_slice == 10){
 			if (rmp->priority < MIN_USER_Q) {
 				rmp->priority += 1; /* lower priority */
@@ -393,6 +395,9 @@ int implmlfq(int flag,int subflag,struct schedproc *rmp,unsigned args){
 			rmp->time_slice = DEFAULT_USER_TIME_SLICE;
 		}else if(subflag==1){
 			rmp->priority = 7;
+		}else if(subflag==2){
+			rmp->priority = USER_Q;
+			rmp->time_slice = 5;
 		}
 	}else if(flag==3){
 		if(subflag==0){
