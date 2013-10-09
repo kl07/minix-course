@@ -179,7 +179,7 @@ int do_start_scheduling(message *m_ptr)
 		   process scheduled, and the parent of itself. */
 		//rmp->priority   = USER_Q;
 		//rmp->time_slice = DEFAULT_USER_TIME_SLICE;
-		*osscheduler(2,0,rmp,0);
+		(*osscheduler)(2,0,rmp,0);
 		/*
 		 * Since kernel never changes the cpu of a process, all are
 		 * started on the BSP and the userspace scheduling hasn't
@@ -200,7 +200,7 @@ int do_start_scheduling(message *m_ptr)
 		 * from the parent */
 		//rmp->priority   = rmp->max_priority;
 		rmp->time_slice = (unsigned) m_ptr->SCHEDULING_QUANTUM;
-		*osscheduler(2,1,rmp,0);
+		(*osscheduler)(2,1,rmp,0);
 		break;
 		
 	case SCHEDULING_INHERIT:
@@ -277,7 +277,7 @@ int do_nice(message *m_ptr)
 
 	rmp = &schedproc[proc_nr_n];
 	//new_q = (unsigned) m_ptr->SCHEDULING_MAXPRIO;
-	new_q = *osscheduler(3,0,NULL,m_ptr->SCHEDULING_MAXPRIO);
+	new_q = (*osscheduler)(3,0,NULL,m_ptr->SCHEDULING_MAXPRIO);
 	if (new_q >= NR_SCHED_QUEUES) {
 		return EINVAL;
 	}
@@ -285,7 +285,7 @@ int do_nice(message *m_ptr)
 	/* Store old values, in case we need to roll back the changes */
 	old_q     = rmp->priority;
 	old_max_q = rmp->max_priority;
-	old_num_tickets = *osscheduler(3,1,rmp,0);
+	old_num_tickets = (*osscheduler)(3,1,rmp,0);
 	/* Update the proc entry and reschedule the process */
 	rmp->max_priority = rmp->priority = new_q;
 
@@ -294,9 +294,9 @@ int do_nice(message *m_ptr)
 		 * back the changes to proc struct */
 		rmp->priority     = old_q;
 		rmp->max_priority = old_max_q;
-		*osscheduler(3,2,rmp,old_num_tickets);
+		(*osscheduler)(3,2,rmp,old_num_tickets);
 	}
-	*osscheduler(3,3,rmp,0);
+	(*osscheduler)(3,3,rmp,0);
 	return rv;
 }
 
@@ -367,14 +367,14 @@ static void balance_queues(struct timer *tp)
 				rmp->priority -= 1;  increase priority 
 				schedule_process_local(rmp);
 			}*/
-			*osscheduler(6,0,rmp,0);
+			(*osscheduler)(6,0,rmp,0);
 		}
 	}
 
 	set_timer(&sched_timer, balance_timeout, balance_queues, 0);
 }
 
-int implmlfq(int flag,int subflag,struct shcedproc *rmp,unsigned args){
+int implmlfq(int flag,int subflag,struct schedproc *rmp,unsigned args){
 	if(flag==0){
 		if(rmp->time_slice == 5 || rmp->time_slice == 10){
 			if (rmp->priority < MIN_USER_Q) {
@@ -391,7 +391,7 @@ int implmlfq(int flag,int subflag,struct shcedproc *rmp,unsigned args){
 			rmp->priority = 7;
 			rmp->time_slice = DEFAULT_USER_TIME_SLICE;
 		}else if(subflag==1){
-			rmp->prioirty = 7;
+			rmp->priority = 7;
 		}
 	}else if(flag==3){
 		if(subflag==0){
