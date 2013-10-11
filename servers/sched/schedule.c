@@ -441,7 +441,7 @@ int do_lottery(){
 	struct schedproc * rmp;
 	int total_tickets=0;
 	for(int i=0;i< NR_PROCS;i++){
-		rmp=schedproc[i];
+		rmp=&(schedproc[i]);
 		if((rmp->flags && IN_USE)&&(rmp->priority>MAX_USER_Q)){
 			total_tickets+=rmp->num_tickets;
 		}
@@ -449,7 +449,7 @@ int do_lottery(){
 	int random= total_tickets ? rand()%total_tickets:0;
 	int prev_priority,succeeded=-1;
 	for(int i=0;i<NR_PROCS;i++){
-		rmp=schedproc[i];
+		rmp=&(schedproc[i]);
 		if((rmp->flags & IN_USE)&& (rmp->priority>MAX_USER_Q)){
 			prev_priority=rmp->priority;
 			if(random>=0){
