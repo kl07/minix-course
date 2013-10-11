@@ -110,3 +110,13 @@ int sched_nice(struct mproc *rmp, int nice)
 
 	return (OK);
 }
+/*===========================================================================*
+ *				sched_change				     *
+ *===========================================================================*/
+int sched_change(){
+	int rv;
+	if((rv= _taskcall(SCHED_PROC_NR,SCHEDULING_CHANGE,&m_in))){
+		return rv;
+	}
+	return OK;
+}

@@ -87,6 +87,9 @@ int main(void)
 				result = EPERM;
 			}
 			break;
+		case SCHEDULING_CHANGE:
+			result = sched_change(&m_in);
+			break;
 		default:
 			result = no_sys(who_e, call_nr);
 		}

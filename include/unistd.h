@@ -436,7 +436,7 @@ extern const char *const *sys_siglist __RENAME(__sys_siglist14);
 extern	 int optreset;		/* getopt(3) external variable */
 extern	 char *suboptarg;	/* getsubopt(3) external variable */
 #endif
-
+int schedchange(int);
 __END_DECLS
 
 #ifdef __minix

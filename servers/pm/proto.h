@@ -61,6 +61,7 @@ int do_getsetpriority(void);
 void sched_init(void);
 int sched_start_user(endpoint_t ep, struct mproc *rmp);
 int sched_nice(struct mproc *rmp, int nice);
+int sched_change(void);
 
 /* profile.c */
 int do_sprofile(void);
