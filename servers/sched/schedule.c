@@ -387,7 +387,7 @@ int implmlfq(int flag,int subflag,struct schedproc *rmp,unsigned args){
 			
 			rmp->time_slice *= 2;				
 		}else if(rmp->time_slice == 20){
-			rmp->priority = rmp->max_priority; /* increase priority */
+			rmp->priority = MAX_USER_Q; /* increase priority */
 			rmp->time_slice = 5;
 		}
 	}else if(flag==2){
@@ -397,8 +397,9 @@ int implmlfq(int flag,int subflag,struct schedproc *rmp,unsigned args){
 		}else if(subflag==1){
 			rmp->priority = 7;
 		}else if(subflag==2){
-			rmp->priority = USER_Q;
+			rmp->priority = 16;
 			rmp->time_slice = 5;
+			rmp->max_priority = MAX_USER_Q;
 		}
 	}else if(flag==3){
 		if(subflag==0){
