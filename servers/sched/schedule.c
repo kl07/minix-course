@@ -105,7 +105,7 @@ int do_noquantum(message *m_ptr)
 
 	rmp = &schedproc[proc_nr_n];
 	if(MAX_USER_Q  <= rmp->priority && rmp->priority <= MIN_USER_Q){
-		(*osscheduler)(0,0,rmp,0);
+		(*osscheduler)(0,0,rmp,proc_nr_n);
 	}
 	else if (rmp->priority < MIN_USER_Q) {
 		rmp->priority += 1; /* lower priority */
@@ -114,7 +114,7 @@ int do_noquantum(message *m_ptr)
 	if ((rv = schedule_process_local(rmp)) != OK) {
 		return rv;
 	}
-	if((rv=(*osscheduler)(0,1,rmp,0))!=OK)
+	if((rv=(*osscheduler)(0,1,rmp,proc_nr_n))!=OK)
 		return rv;
 	return OK;
 }
@@ -385,12 +385,15 @@ static void balance_queues(struct timer *tp)
 
 	set_timer(&sched_timer, balance_timeout, balance_queues, 0);
 }
-
+/*****************************************************************************
+ * 			implfq				*
+ *****************************************************************************/
 int implmlfq(int flag,int subflag,struct schedproc *rmp,unsigned args){
-	if(flag==0){
-		printf("SCHED : MLFQ Quantum expired %d in process %d in queue %d\n",
-				rmp->time_slice,args,rmp->priority);
+	if(flag==0){ 	/* do_noquantum code */
 		if(subflag==0){
+			printf("SCHED : MLFQ Quantum expired %d in process %d in queue %d\n",
+				rmp->time_slice,args,rmp->priority);
+
 			if(rmp->time_slice == 5 || rmp->time_slice == 10){
 				if (rmp->priority < MIN_USER_Q) {
 					rmp->priority += 1; /* lower priority */
@@ -402,32 +405,29 @@ int implmlfq(int flag,int subflag,struct schedproc *rmp,unsigned args){
 				rmp->time_slice = 5;
 			}
 		}
-	}else if(flag==2){
-		if(subflag==0){
+	}else if(flag==2){ /*do_start_scheduling code */
+		if(subflag==0){ /* for system processes */
 			rmp->priority = 7;
 			rmp->time_slice = DEFAULT_USER_TIME_SLICE;
 			rmp->max_priority=7;
-		}else if(subflag==1){
+		}else if(subflag==1){ /* for init process */
 			rmp->priority = 7;
 			rmp->max_priority=7;
-		}else if(subflag==2){
+		}else if(subflag==2){ /* for all user processes */
 			rmp->priority = 16;
 			rmp->time_slice = 5;
 			rmp->max_priority = MAX_USER_Q;
 			rmp->num_tickets=5;
 		}
-	}else if(flag==3){
+	}else if(flag==3){ /* do_nice code */
 		if(subflag==0){
-			return args;
+			return args; /* return the calculated value from pm */
 		}
-	}else if(flag==6){
-		if(rmp->priority > rmp->max_priority){
-			if(rmp->max_priority == MAX_USER_Q){
-				if (rmp->priority > rmp->max_priority) {
-					rmp->priority = rmp->max_priority; /* increase priority */
-				}
-			}else
-				rmp->priority -=1;
+	}else if(flag==6){ /* balance queues code */
+		if(rmp->priority>=MAX_USER_Q && rmp->priority<=MIN_USER_Q){
+			rmp->priority = MAX_USER_Q; /* increase priority to topmost queue */
+		}else
+			rmp->priority -=1;
 			schedule_process_local(rmp);
 		}
 	}
@@ -440,13 +440,15 @@ int implmlfq(int flag,int subflag,struct schedproc *rmp,unsigned args){
 int do_lottery(){
 	struct schedproc * rmp;
 	int total_tickets=0;
-	for(int i=0;i< NR_PROCS;i++){
+	for(int i=0;i< NR_PROCS;i++){ /* calculate total number of tickets in ready
+									 queue */
 		rmp=&(schedproc[i]);
 		if((rmp->flags && IN_USE)&&(rmp->priority>MAX_USER_Q)){
 			total_tickets+=rmp->num_tickets;
 		}
 	}
-	int random_ticket= total_tickets ? random()%total_tickets:0;
+	int random_ticket= total_tickets ? random()%total_tickets:0; /*pick a random
+																   number */
 	int prev_priority,succeeded=-1;
 	for(int i=0;i<NR_PROCS;i++){
 		rmp=&(schedproc[i]);
@@ -454,7 +456,7 @@ int do_lottery(){
 			prev_priority=rmp->priority;
 			if(random_ticket>=0){
 				random_ticket-=rmp->num_tickets;
-				if(random_ticket<0){
+				if(random_ticket<0){ /* when difference <0 schedule the process*/
 					succeeded=1;
 					rmp->priority=MAX_USER_Q;
 					rmp->time_slice=20;
@@ -462,52 +464,56 @@ int do_lottery(){
 			}
 			if(prev_priority!=rmp->priority){
 				schedule_process_local(rmp);
+				break;
 			}
 		}
 	}
 	return OK;
 }
-
+/*****************************************************************************
+ * 			impllot				*
+ *****************************************************************************/
 int impllot(int flag,int subflag,struct schedproc *rmp,unsigned args){
-	if(flag==0){
+	if(flag==0){ /* do_noquantum code */
 		printf("SCHED : LOT Quantum expired %d in process %d in queue %d\n",
 				rmp->time_slice,args,rmp->priority);
 		if(subflag==0){
-			rmp->priority=USER_Q;
+			rmp->priority=USER_Q; /* put process back into USER_Q */
 		}else if(subflag==1){
-			return do_lottery();
+			return do_lottery(); /* pick new process to schedule */
 		}
-	}else if(flag==1){
-		return do_lottery();
-	}else if(flag==2){
-		if(subflag==0){
+	}else if(flag==1){ /* do_stop_scheduling code */
+		return do_lottery(); /* put new process since this one is done */
+	}else if(flag==2){ /* do_start_scheduling code */
+		if(subflag==0){ /* for system processes */
 			rmp->priority = 7;
 			rmp->time_slice = DEFAULT_USER_TIME_SLICE;
-		}else if(subflag==1){
+		}else if(subflag==1){ /* for init process */
 			rmp->priority = 7;
 			rmp->max_priority=7;
-		}else if(subflag==2){
+		}else if(subflag==2){ /* for all other user processess */
 			rmp->priority = USER_Q;
 			rmp->time_slice = 20;
-			rmp->max_priority = MIN_USER_Q;
+			rmp->max_priority = MAX_USER_Q;
 			rmp->num_tickets=5;
 		}
-	}else if(flag==3){
+	}else if(flag==3){ /* do_nice code */
 		if(subflag==0){
-			return USER_Q;
+			return USER_Q; /* return the new queue of process as USER_Q */
 		}else if(subflag==1){
 			int tmp=args;
 			int orig_value=PRIO_MIN+((args-MAX_USER_Q)*(PRIO_MAX-PRIO_MIN+1)/
-							(MIN_USER_Q-MAX_USER_Q+1));
-			rmp->num_tickets=orig_value;
-		}else if(subflag==2){
-			rmp->num_tickets=args;
-		}else if(subflag==3){
+							(MIN_USER_Q-MAX_USER_Q+1)); /* undo calculation of
+														   nice in pm */
+			rmp->num_tickets+=orig_value; /* increment tickets by nice value */
+		}else if(subflag==2){ /* rollback in case scheduling fails */
+			rmp->num_tickets=args; /* set old number of tickets */
+		}else if(subflag==3){ /* pick new process after change in num of tickets */
 			return do_lottery();
 		}
-	}else if(flag==6){
+	}else if(flag==6){ /* balance_queues code */
 		if(rmp->priority<MAX_USER_Q){
-			rmp->priority-=1;
+			rmp->priority-=1; /* MLFQ behaviour for all non-user processes */
 			schedule_process_local(rmp);
 		}
 	}
