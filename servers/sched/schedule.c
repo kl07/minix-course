@@ -426,7 +426,7 @@ int implmlfq(int flag,int subflag,struct schedproc *rmp,unsigned args){
 	}else if(flag==6){ /* balance queues code */
 		if(rmp->priority>=MAX_USER_Q && rmp->priority<=MIN_USER_Q){
 			rmp->priority = MAX_USER_Q; /* increase priority to topmost queue */
-		}else{
+		}else if(rmp->priority > rmp->max_priority){ /* for system processes */
 			rmp->priority -=1;
 		}
 			schedule_process_local(rmp);
