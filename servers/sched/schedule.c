@@ -336,8 +336,8 @@ static int schedule_process(struct schedproc * rmp, unsigned flags)
 
 	if ((err = sys_schedule(rmp->endpoint, new_prio,
 		new_quantum, new_cpu)) != OK) {
-		printf("PM: An error occurred when trying to schedule %d: %d\n",
-		rmp->endpoint, err);
+		printf("PM: An error occurred when trying to schedule %d %d : %d\n",
+		rmp->endpoint,rmp->priority, err);
 	}
 
 	return err;
@@ -426,7 +426,7 @@ int implmlfq(int flag,int subflag,struct schedproc *rmp,unsigned args){
 	}else if(flag==6){ /* balance queues code */
 		if(rmp->priority>=MAX_USER_Q && rmp->priority<=MIN_USER_Q){
 			rmp->priority = MAX_USER_Q; /* increase priority to topmost queue */
-		}else if(rmp->priority > rmp->max_priority){ /* for system processes */
+		}else if(rmp->priority > rmp->max_priority && rmp->priority >1){ /* for system processes */
 			rmp->priority -=1;
 		}
 			schedule_process_local(rmp);
@@ -511,7 +511,7 @@ int impllot(int flag,int subflag,struct schedproc *rmp,unsigned args){
 			return do_lottery();
 		}
 	}else if(flag==6){ /* balance_queues code */
-		if(rmp->priority<MAX_USER_Q){
+		if(rmp->priority<MAX_USER_Q && rmp->priority >1){
 			rmp->priority-=1; /* MLFQ behaviour for all non-user processes */
 			schedule_process_local(rmp);
 		}
