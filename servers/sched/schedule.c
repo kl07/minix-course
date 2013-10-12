@@ -426,7 +426,7 @@ int implmlfq(int flag,int subflag,struct schedproc *rmp,unsigned args){
 	}else if(flag==6){ /* balance queues code */
 		if(rmp->priority>=MAX_USER_Q && rmp->priority<=MIN_USER_Q){
 			rmp->priority = MAX_USER_Q; /* increase priority to topmost queue */
-		}else
+		}else{
 			rmp->priority -=1;
 			schedule_process_local(rmp);
 		}
@@ -501,7 +501,6 @@ int impllot(int flag,int subflag,struct schedproc *rmp,unsigned args){
 		if(subflag==0){
 			return USER_Q; /* return the new queue of process as USER_Q */
 		}else if(subflag==1){
-			int tmp=args;
 			int orig_value=PRIO_MIN+((args-MAX_USER_Q)*(PRIO_MAX-PRIO_MIN+1)/
 							(MIN_USER_Q-MAX_USER_Q+1)); /* undo calculation of
 														   nice in pm */
@@ -517,6 +516,7 @@ int impllot(int flag,int subflag,struct schedproc *rmp,unsigned args){
 			schedule_process_local(rmp);
 		}
 	}
+	return OK;
 }
 
 /******************************************************************************
