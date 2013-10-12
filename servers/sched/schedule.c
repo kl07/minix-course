@@ -107,7 +107,7 @@ int do_noquantum(message *m_ptr)
 	if(MAX_USER_Q  <= rmp->priority && rmp->priority <= MIN_USER_Q){
 		(*osscheduler)(0,0,rmp,proc_nr_n);
 	}
-	else if (rmp->priority < MIN_USER_Q) {
+	else if (rmp->priority < MAX_USER_Q-1) {
 		rmp->priority += 1; /* lower priority */
 	}
 
@@ -428,8 +428,8 @@ int implmlfq(int flag,int subflag,struct schedproc *rmp,unsigned args){
 			rmp->priority = MAX_USER_Q; /* increase priority to topmost queue */
 		}else{
 			rmp->priority -=1;
-			schedule_process_local(rmp);
 		}
+			schedule_process_local(rmp);
 	}
 	
 	return OK;
