@@ -516,6 +516,8 @@ int impllot(int flag,int subflag,struct schedproc *rmp,unsigned args){
 							(MIN_USER_Q-MAX_USER_Q+1)); /* undo calculation of
 														   nice in pm */
 			rmp->num_tickets+=orig_value; /* increment tickets by nice value */
+			if(rmp->num_tickets <=0)
+				rmp->num_tickets =5;
 		}else if(subflag==2){ /* rollback in case scheduling fails */
 			rmp->num_tickets=args; /* set old number of tickets */
 		}else if(subflag==3){ /* pick new process after change in num of tickets */
