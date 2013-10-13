@@ -142,7 +142,7 @@ int do_stop_scheduling(message *m_ptr)
 	cpu_proc[rmp->cpu]--;
 #endif
 	rmp->flags = 0; /*&= ~IN_USE;*/
-	return (*osscheduler)(1,0,rmp,0);
+	return (*osscheduler)(1,0,rmp,proc_nr_n);
 
 	return OK;
 }
@@ -397,9 +397,9 @@ int implmlfq(int flag,int subflag,struct schedproc *rmp,unsigned args){
 				rmp->time_slice,args,rmp->priority);
 			u64_t current_tsc;
 			read_tsc_64(&current_tsc);
-			rmp->waiting_time = rmp->waiting_time+((current_tsc - rmp->last_tsc)-rmp->time_slice);
+			rmp->waiting_time = rmp->waiting_time+((current_tsc-rmp->last_tsc)-
+					(rmp->time_slice*sys_hz()/1000));
 			rmp->last_tsc=current_tsc;
-			printf("SCHED : MLFQ waiting time of process %d is %llu\n",args,rmp->waiting_time);
 			if(rmp->time_slice == 5 || rmp->time_slice == 10){
 				if (rmp->priority < MIN_USER_Q) {
 					rmp->priority += 1; /* lower priority */
@@ -410,6 +410,10 @@ int implmlfq(int flag,int subflag,struct schedproc *rmp,unsigned args){
 				rmp->priority = MAX_USER_Q; /* increase priority */
 				rmp->time_slice = 5;
 			}
+		}
+	}else if(flag==1){
+		if(rmp->priority>=MAX_USER_Q && rmp->priority<=MIN_USER_Q){
+			printf("SCHED : MLFQ waiting time of process %d is %llu\n",args,rmp->waiting_time);
 		}
 	}else if(flag==2){ /*do_start_scheduling code */
 		if(subflag==0){ /* for system processes */
@@ -485,15 +489,19 @@ int impllot(int flag,int subflag,struct schedproc *rmp,unsigned args){
 				rmp->time_slice,args,rmp->priority);
 		u64_t current_tsc;
 		read_tsc_64(&current_tsc);
-		rmp->waiting_time = rmp->waiting_time+((current_tsc - rmp->last_tsc)-rmp->time_slice);
+		rmp->waiting_time = rmp->waiting_time+((current_tsc - rmp->last_tsc)-
+				(rmp->time_slice*sys_hz()/1000));
 		rmp->last_tsc=current_tsc;
-		printf("SCHED : MLFQ waiting time of process %d is %llu\n",args,rmp->waiting_time);
+		//printf("SCHED : MLFQ waiting time of process %d is %llu\n",args,rmp->waiting_time);
 		if(subflag==0){
 			rmp->priority=USER_Q; /* put process back into USER_Q */
 		}else if(subflag==1){
 			return do_lottery(); /* pick new process to schedule */
 		}
 	}else if(flag==1){ /* do_stop_scheduling code */
+		if(rmp->priority>=MAX_USER_Q && rmp->priority<=MIN_USER_Q){
+			printf("SCHED : MLFQ waiting time of process %d is %llu\n",args,rmp->waiting_time);
+		}
 		return do_lottery(); /* put new process since this one is done */
 	}else if(flag==2){ /* do_start_scheduling code */
 		if(subflag==0){ /* for system processes */
