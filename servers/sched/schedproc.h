@@ -4,6 +4,8 @@
 #include <limits.h>
 
 #include <minix/bitmap.h>
+#include <stdlib.h>
+#include <sys/resource.h>
 
 /* EXTERN should be extern except in main.c, where we want to keep the struct */
 #ifdef _MAIN
@@ -34,6 +36,8 @@ EXTERN struct schedproc {
 								process allowed
 								to run on */
 	unsigned num_tickets;
+	u64_t last_tsc;
+	u64_t waiting_time;
 } schedproc[NR_PROCS];
 
 /* Flag values */

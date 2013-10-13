@@ -174,6 +174,8 @@ int do_start_scheduling(message *m_ptr)
 	rmp->endpoint     = m_ptr->SCHEDULING_ENDPOINT;
 	rmp->parent       = m_ptr->SCHEDULING_PARENT;
 	rmp->max_priority = (unsigned) m_ptr->SCHEDULING_MAXPRIO;
+	read_tsc_64(&(rmp->last_tsc));
+	rmp->waiting_time = 0;
 	if (rmp->max_priority >= NR_SCHED_QUEUES) {
 		return EINVAL;
 	}
@@ -393,7 +395,11 @@ int implmlfq(int flag,int subflag,struct schedproc *rmp,unsigned args){
 		if(subflag==0){
 			printf("SCHED : MLFQ Quantum expired %d in process %d in queue %d\n",
 				rmp->time_slice,args,rmp->priority);
-
+			u64_t current_tsc;
+			read_tsc_64(&current_tsc);
+			rmp->waiting_time = rmp->waiting_time+((current_tsc - rmp->last_tsc)-rmp->time_slice);
+			rmp->last_tsc=current_tsc;
+			printf("SCHED : MLFQ waiting time of process %d is %llu\n",args,rmp->waiting_time);
 			if(rmp->time_slice == 5 || rmp->time_slice == 10){
 				if (rmp->priority < MIN_USER_Q) {
 					rmp->priority += 1; /* lower priority */
@@ -477,6 +483,11 @@ int impllot(int flag,int subflag,struct schedproc *rmp,unsigned args){
 	if(flag==0){ /* do_noquantum code */
 		printf("SCHED : LOT Quantum expired %d in process %d in queue %d\n",
 				rmp->time_slice,args,rmp->priority);
+		u64_t current_tsc;
+		read_tsc_64(&current_tsc);
+		rmp->waiting_time = rmp->waiting_time+((current_tsc - rmp->last_tsc)-rmp->time_slice);
+		rmp->last_tsc=current_tsc;
+		printf("SCHED : MLFQ waiting time of process %d is %llu\n",args,rmp->waiting_time);
 		if(subflag==0){
 			rmp->priority=USER_Q; /* put process back into USER_Q */
 		}else if(subflag==1){
