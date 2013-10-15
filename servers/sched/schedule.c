@@ -23,10 +23,10 @@ static unsigned balance_timeout;
 
 static int schedule_process(struct schedproc * rmp, unsigned flags);
 static void balance_queues(struct timer *tp);
-int (*osscheduler)(int flag,int subflag,struct schedproc * rmp,unsigned args);
+int (*osscheduler)(int flag,int subflag,struct schedproc * rmp,int args);
 int do_lottery();
-int implmlfq(int flag,int subflag,struct schedproc *rmp,unsigned args);
-int impllot(int flag,int subflag,struct schedproc *rmp,unsigned args);
+int implmlfq(int flag,int subflag,struct schedproc *rmp,int args);
+int impllot(int flag,int subflag,struct schedproc *rmp,int args);
 #define SCHEDULE_CHANGE_PRIO	0x1
 #define SCHEDULE_CHANGE_QUANTUM	0x2
 #define SCHEDULE_CHANGE_CPU	0x4
@@ -287,7 +287,7 @@ int do_nice(message *m_ptr)
 
 	rmp = &schedproc[proc_nr_n];
 	//new_q = (unsigned) m_ptr->SCHEDULING_MAXPRIO;
-	new_q = (*osscheduler)(3,0,NULL,m_ptr->SCHEDULING_MAXPRIO);
+	new_q = (*osscheduler)(3,0,rmp,m_ptr->SCHEDULING_MAXPRIO);
 	if (new_q >= NR_SCHED_QUEUES) {
 		return EINVAL;
 	}
@@ -390,7 +390,7 @@ static void balance_queues(struct timer *tp)
 /*****************************************************************************
  * 			implfq				*
  *****************************************************************************/
-int implmlfq(int flag,int subflag,struct schedproc *rmp,unsigned args){
+int implmlfq(int flag,int subflag,struct schedproc *rmp,int args){
 	if(flag==0){ 	/* do_noquantum code */
 		if(subflag==0){
 			printf("SCHED : MLFQ Quantum expired %d in process %d in queue %d\n",
@@ -431,7 +431,29 @@ int implmlfq(int flag,int subflag,struct schedproc *rmp,unsigned args){
 		}
 	}else if(flag==3){ /* do_nice code */
 		if(subflag==0){
-			return args; /* return the calculated value from pm */
+			if(rmp->priority>=MAX_USER_Q && rmp->priority<=MIN_USER_Q){
+				if (args < PRIO_MIN || args > PRIO_MAX) return USER_Q;
+
+				int new_q = MAX_USER_Q + (nice-PRIO_MIN) * (MIN_USER_Q-MAX_USER_Q+1) /
+					(PRIO_MAX-PRIO_MIN+1); /* calculate priority from nice */
+
+				/* Neither of these should ever happen. */
+				if ((signed) new_q < MAX_USER_Q) new_q = MAX_USER_Q;
+				if (new_q > MIN_USER_Q) new_q = MIN_USER_Q;
+				return new_q;
+			}else{ /* nice_to_priority from PM for default value */
+				if (args < PRIO_MIN || args > PRIO_MAX) return 7;
+
+				int new_q_default = (nice-PRIO_MIN) * (15-1) /
+					(PRIO_MAX-PRIO_MIN+1);
+
+				/* Neither of these should ever happen. */
+				if ((signed) new_q_default < MAX_USER_Q) new_q_default = MAX_USER_Q;
+				if (new_q_default > MIN_USER_Q) new_q_default = MIN_USER_Q;
+
+				return new_q_default;
+
+			}
 		}
 	}else if(flag==6){ /* balance queues code */
 		if(rmp->priority>=MAX_USER_Q && rmp->priority<=MIN_USER_Q){
@@ -483,7 +505,7 @@ int do_lottery(){
 /*****************************************************************************
  * 			impllot				*
  *****************************************************************************/
-int impllot(int flag,int subflag,struct schedproc *rmp,unsigned args){
+int impllot(int flag,int subflag,struct schedproc *rmp,int args){
 	if(flag==0){ /* do_noquantum code */
 		printf("SCHED : LOT Quantum expired %d in process %d in queue %d\n",
 				rmp->time_slice,args,rmp->priority);
@@ -518,14 +540,24 @@ int impllot(int flag,int subflag,struct schedproc *rmp,unsigned args){
 		}
 	}else if(flag==3){ /* do_nice code */
 		if(subflag==0){
-			return USER_Q; /* return the new queue of process as USER_Q */
+			if(rmp->priority >=MAX_USER_Q && rmp->priority<=MIN_USER_Q)
+				return USER_Q; /* return the new queue of process as USER_Q */
+			else{ /* nice_to_priority for default processes */
+				if (args < PRIO_MIN || args > PRIO_MAX) return 7;
+
+				int new_q_default = (nice-PRIO_MIN) * (15-1) /
+					(PRIO_MAX-PRIO_MIN+1);
+
+				/* Neither of these should ever happen. */
+				if ((signed) new_q_default < MAX_USER_Q) new_q_default = MAX_USER_Q;
+				if (new_q_default > MIN_USER_Q) new_q_default = MIN_USER_Q;
+
+				return new_q_default;
+			}
 		}else if(subflag==1){
-			int orig_value=PRIO_MIN+((args-MAX_USER_Q)*(PRIO_MAX-PRIO_MIN+1)/
-							(MIN_USER_Q-MAX_USER_Q+1)); /* undo calculation of
-														   nice in pm */
-			rmp->num_tickets+=orig_value; /* increment tickets by nice value */
+			rmp->num_tickets+=args; /* increment tickets by nice value */
 			if(rmp->num_tickets <=0)
-				rmp->num_tickets =5;
+				rmp->num_tickets=5;
 		}else if(subflag==2){ /* rollback in case scheduling fails */
 			rmp->num_tickets=args; /* set old number of tickets */
 		}else if(subflag==3){ /* pick new process after change in num of tickets */
