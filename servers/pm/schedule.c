@@ -98,16 +98,22 @@ int sched_nice(struct mproc *rmp, int nice)
 	if (rmp->mp_scheduler == KERNEL || rmp->mp_scheduler == NONE)
 		return (EINVAL);
 
-	if ((rv = nice_to_priority(nice, &maxprio)) != OK) {
-		return rv;
-	}
-
 	m.SCHEDULING_ENDPOINT	= rmp->mp_endpoint;
 	m.SCHEDULING_MAXPRIO	= (int) nice;
 	if ((rv = _taskcall(rmp->mp_scheduler, SCHEDULING_SET_NICE, &m))) {
 		return rv;
 	}
 
+	if ((rv = nice_to_priority(nice, &maxprio)) != OK) {
+		return rv;
+	}
+
+	/*m.SCHEDULING_ENDPOINT	= rmp->mp_endpoint;
+	m.SCHEDULING_MAXPRIO	= (int) nice;
+	if ((rv = _taskcall(rmp->mp_scheduler, SCHEDULING_SET_NICE, &m))) {
+		return rv;
+	}
+*/
 	return (OK);
 }
 /*===========================================================================*
