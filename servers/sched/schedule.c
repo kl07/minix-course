@@ -434,7 +434,7 @@ int implmlfq(int flag,int subflag,struct schedproc *rmp,int args){
 			if(rmp->priority>=MAX_USER_Q && rmp->priority<=MIN_USER_Q){
 				if (args < PRIO_MIN || args > PRIO_MAX) return USER_Q;
 
-				int new_q = MAX_USER_Q + (nice-PRIO_MIN) * (MIN_USER_Q-MAX_USER_Q+1) /
+				int new_q = MAX_USER_Q + (args-PRIO_MIN) * (MIN_USER_Q-MAX_USER_Q+1) /
 					(PRIO_MAX-PRIO_MIN+1); /* calculate priority from nice */
 
 				/* Neither of these should ever happen. */
@@ -444,7 +444,7 @@ int implmlfq(int flag,int subflag,struct schedproc *rmp,int args){
 			}else{ /* nice_to_priority from PM for default value */
 				if (args < PRIO_MIN || args > PRIO_MAX) return 7;
 
-				int new_q_default = (nice-PRIO_MIN) * (15-1) /
+				int new_q_default = (args-PRIO_MIN) * (15-1) /
 					(PRIO_MAX-PRIO_MIN+1);
 
 				/* Neither of these should ever happen. */
@@ -545,7 +545,7 @@ int impllot(int flag,int subflag,struct schedproc *rmp,int args){
 			else{ /* nice_to_priority for default processes */
 				if (args < PRIO_MIN || args > PRIO_MAX) return 7;
 
-				int new_q_default = (nice-PRIO_MIN) * (15-1) /
+				int new_q_default = (args-PRIO_MIN) * (15-1) /
 					(PRIO_MAX-PRIO_MIN+1);
 
 				/* Neither of these should ever happen. */
